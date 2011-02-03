@@ -17,7 +17,7 @@ trait VaadinPlugin extends DefaultWebProject {
 
   def vaadinCompilerClass: String = "com.vaadin.tools.WidgetsetCompiler"
   def vaadinCompilerArgs: List[String] = List("-out", vaadinOutputPath.absolutePath, vaadinWidgetSet)
-  def vaadinCompilerJvmArgs: List[String] = List("-Xmx128M")
+  def vaadinCompilerJvmArgs: List[String] = List("-server", "-Xmx700m", "-Xms300m", "-XX:PermSize=100M", "-XX:MaxPermSize=500M")
   def vaadinCompilerClasspath: PathFinder = compileClasspath +++ mainResourcesOutputPath
   def vaadinCompilerOutputPath = outputPath / "vaadin"
   def autorunVaadinCompile = !vaadinCompilerOutputPath.exists
@@ -26,7 +26,23 @@ trait VaadinPlugin extends DefaultWebProject {
     import Process._
     val cp = vaadinCompilerClasspath.getPaths.mkString(System.getProperty("path.separator"))
     val parts = "java" :: vaadinCompilerJvmArgs ::: List("-classpath", cp, vaadinCompilerClass) ::: vaadinCompilerArgs
-    parts.mkString(" ") ! log
+    
+    if (false)
+      parts.mkString(" ") ! log
+    else {
+      import java.io._
+      def pipeStream(in: InputStream, out: PrintStream) = scala.concurrent.ops.spawn {
+        val inputStream = new BufferedReader(new InputStreamReader(in))
+        var str: String = null
+        while ({ str = inputStream.readLine; str != null })
+          out.println(str)
+      }
+      val p = Runtime.getRuntime.exec(cmd.toArray)
+      pipeStream(p.getErrorStream, System.err)
+      pipeStream(p.getInputStream, System.out)
+      if (p.waitFor != 0)
+        error("Vaadin compile command failed !")
+    }
   }
 
   lazy val vaadinCompile = vaadinCompileAction
