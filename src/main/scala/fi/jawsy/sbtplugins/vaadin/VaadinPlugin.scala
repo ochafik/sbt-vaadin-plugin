@@ -37,7 +37,7 @@ trait VaadinPlugin extends DefaultWebProject {
         while ({ str = inputStream.readLine; str != null })
           out.println(str)
       }
-      val p = Runtime.getRuntime.exec(cmd.toArray)
+      val p = Runtime.getRuntime.exec(parts.toArray)
       pipeStream(p.getErrorStream, System.err)
       pipeStream(p.getInputStream, System.out)
       if (p.waitFor != 0)
